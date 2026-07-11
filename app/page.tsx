@@ -1,66 +1,43 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+import Dashboard from "@/components/Dashboard";
+import {
+  fetchEnergyVsGoal,
+  fetchWorkoutVolume,
+  fetchTopRecordTypes,
+} from "@/lib/api";
 
-export default function Home() {
+function defaultRange(): { startDate: string; endDate: string } {
+  const end = new Date();
+  const start = new Date();
+  start.setDate(end.getDate() - 90);
+  return {
+    startDate: start.toISOString().split("T")[0],
+    endDate: end.toISOString().split("T")[0],
+  };
+}
+
+export default async function Page({
+  searchParams,
+}: {
+  searchParams: Promise<{ start?: string; end?: string }>;
+}) {
+  const params = await searchParams;
+  const fallback = defaultRange();
+  const startDate = params.start ?? fallback.startDate;
+  const endDate = params.end ?? fallback.endDate;
+
+  const [energy, workouts, topRecordTypes] = await Promise.all([
+    fetchEnergyVsGoal(params.start, params.end),
+    fetchWorkoutVolume(params.start, params.end),
+    fetchTopRecordTypes(params.start, params.end),
+  ]);
+
   return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className={styles.intro}>
-          <h1>To get started, edit the page.tsx file.</h1>
-          <p>
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className={styles.secondary}
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+    <Dashboard
+      startDate={startDate}
+      endDate={endDate}
+      energy={energy}
+      workouts={workouts}
+      topRecordTypes={topRecordTypes}
+    />
   );
 }
