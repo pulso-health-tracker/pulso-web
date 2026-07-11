@@ -28,8 +28,7 @@ function latestWorkoutsStat(workouts: MetricsResponse): string {
 }
 
 function topRecordTypeStat(topRecordTypes: MetricsResponse): string {
-  const label = topRecordTypes.datasets[0]?.label;
-  return label ? label.replace("HKQuantityTypeIdentifier", "") : "--";
+  return topRecordTypes.datasets[0]?.label ?? "--";
 }
 
 export default function Dashboard({

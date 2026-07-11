@@ -13,7 +13,7 @@ export default function TopRecordTypesChart({ data }: { data: MetricsResponse })
   const chartData = {
     labels: data.labels,
     datasets: data.datasets.map((ds, i) => ({
-      label: ds.label.replace("HKQuantityTypeIdentifier", ""),
+      label: ds.label,
       data: ds.data,
       borderColor: PALETTE[i % PALETTE.length],
       backgroundColor: "transparent",
