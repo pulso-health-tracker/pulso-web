@@ -1,0 +1,110 @@
+name: Build and Test
+
+on:
+  push:
+    branches: [ master, main, develop ]
+  pull_request:
+    branches: [ master, main, develop ]
+
+jobs:
+  unit-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run unit tests
+        run: npm test
+
+  e2e-test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: pulso
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout pulso-web
+        uses: actions/checkout@v4
+        with:
+          path: pulso-web
+
+      - name: Checkout pulso-dashboard (Django reference API)
+        uses: actions/checkout@v4
+        with:
+          repository: pulso-health-tracker/pulso-dashboard
+          path: pulso-dashboard
+
+      - name: Checkout pulso-etl (fixture loader)
+        uses: actions/checkout@v4
+        with:
+          repository: pulso-health-tracker/pulso-etl
+          path: pulso-etl
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v3
+
+      - name: Load fixture data
+        working-directory: ./pulso-etl
+        run: |
+          uv run python -m pulso.cli --file tests/fixtures/small-export.xml
+        env:
+          DB_HOST: localhost
+          DB_USER: postgres
+          DB_PASSWORD: postgres
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Django dependencies
+        working-directory: ./pulso-dashboard
+        run: pip install -r requirements.txt
+
+      - name: Start Django API
+        working-directory: ./pulso-dashboard
+        run: DB_HOST=localhost nohup python manage.py runserver 8000 &
+        env:
+          DB_HOST: localhost
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: pulso-web/package-lock.json
+
+      - name: Install pulso-web dependencies
+        working-directory: ./pulso-web
+        run: npm ci
+
+      - name: Install Playwright browsers
+        working-directory: ./pulso-web
+        run: npx playwright install --with-deps chromium
+
+      - name: Run e2e tests
+        working-directory: ./pulso-web
+        run: npm run test:e2e
+        env:
+          API_BASE_URL: http://localhost:8000
