@@ -1,36 +1,60 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Pulso Web
 
-## Getting Started
+Next.js (App Router, TypeScript) frontend for the [Pulso](https://github.com/pulso-health-tracker) health dashboard — same 3 charts as the original Django+Vite dashboard, redesigned around server-side rendering: `app/page.tsx` fetches data server-side based on URL search params, instead of client-side `useEffect` calls.
 
-First, run the development server:
+## Tech Stack
+
+- **Next.js** (App Router), **TypeScript**
+- **Chart.js** + `react-chartjs-2`
+- **Vitest** + **Testing Library** (Client Component unit tests)
+- **Playwright** (end-to-end)
+
+## Prerequisites
+
+- A running metrics API exposing `/api/metrics/{energy-vs-goal,workout-volume,top-record-types}` with the contract described below — either the Django API in [pulso-dashboard](https://github.com/pulso-health-tracker/pulso-dashboard) or [pulso-api](https://github.com/pulso-health-tracker/pulso-api).
+- Node 20+, or Docker.
+
+## Quick Start
+
+### With Docker
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+API_BASE_URL=http://host.docker.internal:8000 docker compose up --build
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+App is then available at http://localhost:3000.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Local Development
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm install
+API_BASE_URL=http://localhost:8000 npm run dev
+```
 
-## Learn More
+## Configuration
 
-To learn more about Next.js, take a look at the following resources:
+| Variable        | Default                  | Description                                             |
+|------------------|----------------------------|-----------------------------------------------------------|
+| `API_BASE_URL`    | `http://localhost:8000`    | Base URL of the metrics API — server-only, never sent to the browser |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Architecture
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+`app/page.tsx` is a Server Component: it reads `start`/`end` from `searchParams`, fetches all 3 metrics endpoints server-side via `lib/api.ts`, and passes the results as props into `Dashboard`. `DateRangeSelector` is the only interactive piece — it's a Client Component that updates the URL via `router.push`, which triggers Next.js to re-run `page.tsx` on the server with the new params. The 3 chart components are Client Components (Chart.js needs a canvas) that render whatever data they're given via props — they never fetch anything themselves.
 
-## Deploy on Vercel
+See `docs/superpowers/specs/2026-07-11-nextjs-frontend-migration-design.md` in `pulso-dashboard` for the full design rationale.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Testing
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+# Unit tests (Client Components)
+npm test
+
+# End-to-end (requires a real metrics API running — see tests/e2e/dashboard.spec.ts)
+npm run test:e2e
+```
+
+## Continuous Integration
+
+**Build and Test** (`.github/workflows/tests.yml`) — Vitest unit tests, plus a Playwright e2e job that checks out `pulso-etl` and `pulso-dashboard`, loads fixture data, starts the real Django API, and drives the full rendered app.
+
+**Docker Build** (`.github/workflows/docker.yml`) — builds the production Docker image.
