@@ -1,0 +1,13 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        API_BASE_URL: ${API_BASE_URL:-http://host.docker.internal:8000}
+    environment:
+      API_BASE_URL: ${API_BASE_URL:-http://host.docker.internal:8000}
+    ports:
+      - "3000:3000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
