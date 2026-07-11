@@ -11,7 +11,7 @@ Next.js (App Router, TypeScript) frontend for the [Pulso](https://github.com/pul
 
 ## Prerequisites
 
-- A running metrics API exposing `/api/metrics/{energy-vs-goal,workout-volume,top-record-types}` with the contract described below — either the Django API in [pulso-dashboard](https://github.com/pulso-health-tracker/pulso-dashboard) or [pulso-api](https://github.com/pulso-health-tracker/pulso-api).
+- [pulso-api](https://github.com/pulso-health-tracker/pulso-api) running locally, exposing `/api/metrics/{energy-vs-goal,workout-volume,top-record-types}` — which in turn needs [pulso-etl](https://github.com/pulso-health-tracker/pulso-etl)'s Postgres running and populated.
 - Node 20+, or Docker.
 
 ## Quick Start
@@ -19,7 +19,7 @@ Next.js (App Router, TypeScript) frontend for the [Pulso](https://github.com/pul
 ### With Docker
 
 ```bash
-API_BASE_URL=http://host.docker.internal:8000 docker compose up --build
+API_BASE_URL=http://host.docker.internal:8080 docker compose up --build
 ```
 
 App is then available at http://localhost:3000.
@@ -28,14 +28,14 @@ App is then available at http://localhost:3000.
 
 ```bash
 npm install
-API_BASE_URL=http://localhost:8000 npm run dev
+API_BASE_URL=http://localhost:8080 npm run dev
 ```
 
 ## Configuration
 
 | Variable        | Default                  | Description                                             |
 |------------------|----------------------------|-----------------------------------------------------------|
-| `API_BASE_URL`    | `http://localhost:8000`    | Base URL of the metrics API — server-only, never sent to the browser |
+| `API_BASE_URL`    | `http://localhost:8080`    | Base URL of the metrics API (`pulso-api`) — server-only, never sent to the browser |
 
 ## Architecture
 
@@ -55,6 +55,6 @@ npm run test:e2e
 
 ## Continuous Integration
 
-**Build and Test** (`.github/workflows/tests.yml`) — Vitest unit tests, plus a Playwright e2e job that checks out `pulso-etl` and `pulso-dashboard`, loads fixture data, starts the real Django API, and drives the full rendered app.
+**Build and Test** (`.github/workflows/tests.yml`) — Vitest unit tests, plus a Playwright e2e job that checks out `pulso-etl` and `pulso-api`, loads fixture data, builds and starts the real Go API, and drives the full rendered app.
 
 **Docker Build** (`.github/workflows/docker.yml`) — builds the production Docker image.

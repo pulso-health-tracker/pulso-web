@@ -49,11 +49,11 @@ jobs:
         with:
           path: pulso-web
 
-      - name: Checkout pulso-dashboard (Django reference API)
+      - name: Checkout pulso-api (reference API)
         uses: actions/checkout@v4
         with:
-          repository: pulso-health-tracker/pulso-dashboard
-          path: pulso-dashboard
+          repository: pulso-health-tracker/pulso-api
+          path: pulso-api
 
       - name: Checkout pulso-etl (fixture loader)
         uses: actions/checkout@v4
@@ -73,18 +73,18 @@ jobs:
           DB_USER: postgres
           DB_PASSWORD: postgres
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Set up Go
+        uses: actions/setup-go@v5
         with:
-          python-version: "3.12"
+          go-version: "1.25"
 
-      - name: Install Django dependencies
-        working-directory: ./pulso-dashboard
-        run: pip install -r requirements.txt
+      - name: Build pulso-api
+        working-directory: ./pulso-api
+        run: go build -o pulso-api .
 
-      - name: Start Django API
-        working-directory: ./pulso-dashboard
-        run: DB_HOST=localhost nohup python manage.py runserver 8000 &
+      - name: Start pulso-api
+        working-directory: ./pulso-api
+        run: DB_HOST=localhost PORT=8080 nohup ./pulso-api &
         env:
           DB_HOST: localhost
 
@@ -107,4 +107,4 @@ jobs:
         working-directory: ./pulso-web
         run: npm run test:e2e
         env:
-          API_BASE_URL: http://localhost:8000
+          API_BASE_URL: http://localhost:8080
